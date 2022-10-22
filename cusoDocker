@@ -1,0 +1,114 @@
+docker info                          -- muestra información sobre la instalacion y estado general
+
+docker run                           -- crea un contenedor a partir de una imagen
+
+
+docker run debian:bullseye            -- ejecuta un contenedor si no esta en local lo descarga
+
+docker ps                             -- muestra los contenedores disponibles
+
+docker ps -a                          -- muestra contenedores que estan ejecutandose  en segundo plano
+
+docker images                         -- para saber que imagenes tengo en el sistmea
+
+docker run -it debian bash            -- inicia el contenedor de manera interactiva y ejecuta el baash del contenedor
+
+docker run -it --name interactivo debian bash  -- cambia el nombre del contenedor
+-it -> crea un contenedor en modo terminal interactivo, útil para entrar a la shell
+
+docker rm db767b412739               -- elimina imagen por id o por nombre
+
+docker run -d httpd                  -- ejecuta el contenedor en segundo plano 
+
+docker inspect 36a582f4eb0a          -- muestra informacion del contenedor
+docker inspect 36a582f4eb0a | less   -- muestra informacion resumida
+docker inspect 36a582f4eb0a | grep IPAddress        -- informacion filtrada
+
+docker --help                        -- ayuda de comandos
+docker 'comando' --help              -- información del comando en especifico
+
+docker stop 'id imagen'              -- detiene el contenedor
+
+docker ps
+	-a  Todos lso contenedores, independientemente de su estado de ejecución
+	-l  Ultimos contenedores creados
+	-q  Muestra solamente los identificadores de los contenedores
+	-s  Espacio que ocupa el contenedor
+	-f  Filtra la lista de contenedores según un criterio
+	--format  Cambia la información que se muestra pro cada contenedor
+	
+
+docker ps -f "name=a"                -- filtra por nombre
+
+docker ps -a --format "{{.Names}}"
+
+docker ps -a --format "[{{.Image}}]{{.Names}} => {{.ID}}"
+
+
+------ Ejecutar comandos en un contenedor
+docker run debian
+docker ps -a
+docker exec 'ID' bash          -- Marca error porque el contenedor no se está ejecutando
+docker run -di debian          -- ejecutamos el contenendor en segundo plano
+docker ps                      -- verificamos que se esté ejecutando
+
+docker exec 'id' uname -a      -- muestra la configurarcon del contenedor
+
+docker exec 'id' uptime        -- marca error, instrucción no instalada en el contenedor
+
+docker exec -it 'id' bash      -- ejecuta el comando de manera interactiva
+
+
+-------- Copiar datos al contenedor docker
+
+-- Ejecutamos un contenedor en segundo plano 
+	docker run -d --name apache httpd
+-- ispeccionamos la dirección ip del contenedor
+	docker inspect apache | grep IPAddress
+-- descargamos pagina web para el ejemplo
+	wget https://sanchezcorbalan.es/links -O index.html  -- -O renombra la pagina
+-- copiamos index.html al repositorio de docker
+	docker cp index.html apache:/usr/local/apache2/htdocs/
+	el flujo de datos es bidireccional
+	
+--------- Mostrar estadísticas del uso de docker
+
+docker stats                      -- muestra la información en tiempo real
+docker stats --no-stream          -- muestra una instantanea del estado
+
+-- ejecutamos imagen en segundo plano
+	docker run -id debian
+	
+	ejecutamos el bash en el contenedor de manera interactiva
+	docker exec -ti 'id' bash
+	
+	ejecutamos el comando yes en el bash del contenedor para que se ejecute un bulce
+	yes > /dev/null            -- para dejar en ejecución y no muestre el resultado en pantalla
+	abrimos otro shell en el host para monitorear la actividad de loscontenedores y ejecutamos
+	docker stats
+	
+	con free checamos los recursos utilizador por el host
+	uptime la carga de los procesos
+	top 
+	
+	-- opcional 
+		comando strees 
+		instalacion: apt update && apt install strees
+		
+		paquete para manejar procesos 
+			apt install psmisc
+			uso: 
+				kill stress -- detiene el proceso en ejecucion
+			
+		uso:
+			stress -c 1
+			stress -c 1 -m 5       -- -c nucleos -m memoria
+			
+	
+-------------- Limitar el uso de recursos
+
+
+
+	
+
+
