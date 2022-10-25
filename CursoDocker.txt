@@ -286,6 +286,8 @@ creamos un directorio en donde se va a componer el repositorio
 
 accedemos al directorio y creamos el archivo docker-compose.yaml
 
+https://docs.docker.com/compose/gettingstarted/
+
 
 	
 
