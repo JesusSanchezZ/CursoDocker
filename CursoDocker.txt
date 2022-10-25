@@ -93,7 +93,7 @@ docker stats --no-stream          -- muestra una instantanea del estado
 	
 	-- opcional 
 		comando strees 
-		instalacion: apt update && apt install strees
+		instalacion: apt update && apt install stress
 		
 		paquete para manejar procesos 
 			apt install psmisc
@@ -112,5 +112,201 @@ limitando el uso del procesador
 
 limitando el uso de memoria
     docker run -it -m="500m" 'contenedor'
+
+
+
+------------------------------- Compartir datos entre contenedores 
+--- Asociación de directorios
+
+	montar directorio 
+	creamos directorio con mkdir
+	y movemos el archivo html al directorio
+	mv 'archivo' directorio
+
+	mkdir directorio
+	mv index.html directorio/
+
+	docker run -v /root/miweb/:/usr/local/apache2/htdocs/ -d --name miweb httpd
+	-v para montar el volumen en el contenedor
+	/root/miweb/ ruta relativa de la carpeta a montar
+	/usr/local/apache2/htdocs/ ruta de la carpeta a compartir 
+	
+	sed -i -e 's/modificado/volumes/' miweb/index.html
+
+--Administración de volúmenes
+
+	ejecutamos el repositorio con el montaje de un volumen
+	docker run -v /usr/local/apache2/htdocs/ -d --name apacheV httpd
+
+	docker volume -h
+
+	docker volume ls
+	docker inspect 'id contenedor'
+
+	nombrando el volumen
+		docker run -v 'nombre':'path' -d --name 'nombreContenedor' 'contenedor'
+	docker volume inspect 'nombre del volumen'
+
+	para eliminar el volumen
+	docker volume rm 'nombre del volumen'
+
+	primero detenemos los contenedores y los eliminamos despúes ejecutamos el comando anterior
+	docker stop 'nombre del contenedor'
+	docker rm 'nombre del contenedor'
+
+--- Volúmenes
+	docker run --volumes-from 'nombre del volumen' -d --name 'nombre' 'contenedor'
+	en el contenedor podemos modificar el archivo 
+		vemos el contenido del archivo a modificar 
+			cat 'nombre del archivo'
+		Copiamos el contenido del archivo y lo modificamos, y ejecutamos echo
+			echo 'contenido modificado' > 'archivo destino'
+
+	Para no poder modificar el contenido del volumen desde el contenedor
+	docker run -d -v web:/usr/local/apache2/htdocs/:ro --name apacheRO httpd
+
+	paramos todos los contenedores
+		docker stop $(docker ps -q)
+	eliminamos todos los contenedores
+		docker rm $(docker ps -qa)
+	eliminamos todos los volumenes
+		docker volume prune
+
+---- Resumen
+	- docker run -v /dir_anfi/:/dir_cont/ Llevamos el contenido del direcotiro origen del anfitrión al contenedor. Similar a un punto de montaje linux.
+	- docker run -v /dir_cont/ Se crea un volumen que se usarán en el directorio /dir_cont/
+	- docker run -v nombre:/dir_cont/ Igual que el anterior pero con nombre personalizado
+	- docker volume Gestiona volúmenes con las siguientes opciones:
+		- ls Lista todos los volúmenes.
+		- rm Borra volúmenes que no se estén utilizando
+		- inspect Muestra información de un volumen
+		- prune Borra TODOS los volúmenes que no se estén utilizando
+
+
+--------------------------------- Gestionando lar redes en Docker
+
+-- Gestionar los puertos de los contenedores
+	en el host: ip -c a              -- para visualizar las redes
+
+	docker run -P -d --name apache httpd          -- Ejecuta el contenedor mapeado a un puerto del host
+	
+	para ver el puerto abierto en el host 
+		ss -lt
+		ss -ltp            -- para ver los procesos
+
+	Seleccionamos el mapeo del puerto
+	docker run -p 8081:80 -d --name apache2 httpd     -- 8081 puerto del host, 80 puerto del contenedor
+
+
+---- Redes en docker
+	docker network ls                  -- redes disponibles en docker
+	docker network inspect 'red'        -- inspecciona la red
+
+-- Creación de redes personalizadas para los contenedores
+
+	docker network create -d bridge 'nombre de la red'
+	docker network create -d bridge --subnet=192.168.1.0/16 mired2    -- para especificar la subred
+
+	docker network rm 'nombre de red' elimina la red
+
+	ejecutar un contenedor con una red especifica
+		docker run --net 'nombre de red' -d --name 'nombre del contenedor' 'imagen de docker'
+
+	para instalar utilerias de red
+		apt update && apt install iputils-ping
+
+	Conectar una red a un contenedor
+		docker network connect 'nombre de red' 'nombre del contenedor'
+
+	Desconecta una red de un contenedor
+		docker network disconnect 'nombre de red' 'nombre del contenedor'
+
+-- Exponer un puerto desde dockerfile
+	archivo dockerfile
+		FROM debian:stable-Seleccionamos
+		ARG PAQUETE \
+			ENUM
+		RUN apt-get update && apt-get install -y $PAQUETE
+		ENV EJERCICIO=$ENUM
+		RUN echo 'echo El ejercicio es: $EJERCICIO' >> /root/.bashrc
+
+		RUN apt-get install -y ssh \
+		    && echo "PermitRootLogin yes" >> /etc/ssh/sshd_config
+
+		EXPOSE 22
+		ENV CLAVE=root
+		COPY set-clave-root-sh /root/set-clave-root.sh
+		RUN chmod +x /root/set-clave-root.sh
+
+		ENTRYPOINT service ssh restart && /root/set-clave-root.sh && bash
+
+	EXPOSE permitimos que escuche el contenedor en el puerto especificado
+	ENTRYPOINT ejecuta los comandos, similar a CMD
+
+	Construimos la imagen con el archivo dockerfile-
+	docker build -t ejercicios:3 --build-arg PAQUETE=iproute2 --build-arg ENUM="Listar puertos abiertos" .
+
+	El punto establece el directorio actual, ubicación del archivo dockerfile
+
+	ejecutamos el contenedor	
+		docker run -di --name u2 -e CLAVE=hola ejercicios:3
+	
+	para comunicarse desde otra red
+		docker run -di --name us -e CLAVE=hola -p 20002:22 ejercicios:3
+
+	accedemos a la imagen 
+		con: ssh -p 20002 localhost
+
+
+
+--------------------- Crear varios contenedores de forma simultanea y ordenada: Docker compose
+
+primeros paramos:
+	docker run --name basedatos -e MARIADB_ROOT_PASSWORD=miclave -e MARIADB_DATABASE=wp -d mariadb:latest
+
+	creamos un contenedor para wordpress
+
+		docker run --name webwp --net=megared -e WORDPRESS_DB_HOST=basedatos -e WORDPRESS_DB_USER=root -e WORDPRESS_DB_PASSWORD=miclave -e WORDPRESS_DB_NAME=wp -d wordpress
+
+
+	
+intalalación de docker compose
+
+DOCKER_CONFIG=${DOCKER_CONFIG:-$HOME/.docker}
+mkdir -p $DOCKER_CONFIG/cli-plugins
+curl -SL https://github.com/docker/compose/releases/download/v2.12.2/docker-compose-linux-x86_64 -o $DOCKER_CONFIG/cli-plugins/docker-compose
+
+chmod +x $DOCKER_CONFIG/cli-plugins/docker-compose
+
+docker compose version
+ Docker Compose version v2.12.2
+
+creamos un directorio en donde se va a componer el repositorio
+	mkdir wym
+
+accedemos al directorio y creamos el archivo docker-compose.yaml
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
