@@ -288,6 +288,35 @@ accedemos al directorio y creamos el archivo docker-compose.yaml
 
 https://docs.docker.com/compose/gettingstarted/
 
+Editamos el archivo docker-compose.yaml con nano podemos especificar los espacios de la tabulación
+	nano -ET2 docker-compose.yaml
+
+docker compose up -d          ejecuta los contenedores
+
+docker compose down           detiene y elimina los contenedores
+
+
+---------------------------------subir a docker hub
+	cambiamos el nombre de la imagen	
+		docker tar 'nombre de la imagen':'tag' 'user de dockerhub'/'nombrecontenedor':'tag'
+
+		logeamos en docker hub
+			docker login
+		
+		cargamos la imagen
+			docker push 'nombre de la imagen'
+
+		para descargar una imagen 
+			docker pull 'imagen'
+
+		
+
+----------------------- Kubernetes ------------------------------------------
+
+
+
+
+
 
 	
 
